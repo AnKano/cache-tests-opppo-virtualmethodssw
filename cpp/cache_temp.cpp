@@ -1,7 +1,6 @@
 #include <benchmark/benchmark.h>
 #include <stdalign.h>
 #include <string.h>
-#include <atomic>
 
 static void BM_AllocateToCache(benchmark::State &state)
 {
