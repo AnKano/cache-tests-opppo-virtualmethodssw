@@ -5,6 +5,8 @@
 ##### C++
  - CPU cache size benchmark
  - CPU cache associative cache benchmark
+ - CPU cache multithread affect
+ - CPU cache warm and cold data splitting
 
 ### How to use it
 Node.JS benchmark requires [Node.js](https://nodejs.org/) to run. It was tested on v10.19.0.
