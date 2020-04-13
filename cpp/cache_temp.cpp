@@ -1,5 +1,7 @@
 #include <benchmark/benchmark.h>
+#include <stdalign.h>
 #include <string.h>
+#include <atomic>
 
 static void BM_AllocateToCache(benchmark::State &state)
 {
@@ -32,6 +34,7 @@ static void BM_AllocateToCache(benchmark::State &state)
     delete[] array;
 }
 BENCHMARK(BM_AllocateToCache)->RangeMultiplier(2)->Range(1 << 8, 1 << 24);
+BENCHMARK(BM_AllocateToCache)->RangeMultiplier(2)->Range(1 << 8, 1 << 24)->Threads(4);
 
 static void BM_AllocateChainCache(benchmark::State &state)
 {
@@ -66,5 +69,60 @@ static void BM_AllocateChainCache(benchmark::State &state)
     state.SetBytesProcessed(int64_t(state.iterations()) * int64_t(bytes_to_read) * int64_t(10000));
 }
 BENCHMARK(BM_AllocateChainCache)->DenseRange(64, 1024, 64);
+
+struct Mixed {
+    uint8_t warmData;
+    uint8_t coldData[63];
+};
+
+struct SplitWarm {
+    uint8_t warmData;
+};
+
+struct SplitCold {
+    uint8_t coldData;
+};
+
+static void BM_AllocateNonAlignedData(benchmark::State &state)
+{
+    const uint64_t length = state.range(0);
+
+    Mixed *array = new Mixed[length]();
+    memset(array, 0, sizeof(Mixed) * length);
+
+    uint8_t temp;
+    for (auto _ : state)
+        for (uint16_t rep = 0; rep < 10000; rep++)
+            for (uint64_t i = 0; i < length; i++)
+            {
+                benchmark::DoNotOptimize(temp = array[i].warmData);
+            }
+
+    state.SetBytesProcessed(int64_t(state.iterations()) * int64_t(sizeof(Mixed) * length) * int64_t(10000));
+    delete[] array;
+}
+BENCHMARK(BM_AllocateNonAlignedData)->Arg(1 << 16);
+
+static void BM_AllocateAlignedData(benchmark::State &state)
+{
+    const uint64_t length = state.range(0);
+
+    SplitCold *array = new SplitCold[length]();
+    SplitWarm *array2 = new SplitWarm[length]();
+    memset(array, 0, sizeof(SplitCold) * length);
+    memset(array2, 0, sizeof(SplitWarm) * length);
+
+    uint8_t temp;
+    for (auto _ : state)
+        for (uint16_t rep = 0; rep < 10000; rep++)
+            for (uint64_t i = 0; i < length; i++)
+            {
+                benchmark::DoNotOptimize(temp = array2[i].warmData);
+            }
+
+    state.SetBytesProcessed(int64_t(state.iterations()) * int64_t(sizeof(SplitWarm) * length) * int64_t(10000));
+    delete[] array;
+}
+BENCHMARK(BM_AllocateAlignedData)->Arg(1 << 16);
 
 BENCHMARK_MAIN();
