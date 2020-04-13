@@ -1,0 +1,1 @@
+/usr/bin/c++  -O3 -DNDEBUG  -rdynamic CMakeFiles/cache_proj.dir/cache_temp.cpp.o  -o cache_proj  /usr/local/lib/libbenchmark.a -pthread -lrt 
